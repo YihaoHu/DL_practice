@@ -25,7 +25,7 @@ if __name__ == "__main__":
     #train_data, val_data = random_split(dataset, [23000, 2000])
     #dataset = ConcatDataset([train_data, val_data])
 
-    kfold = KFold(n_splits=2, shuffle=True)
+    kfold = KFold(n_splits=20, shuffle=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Resnet50(Pretrained=True).model.to(device)
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
-    num_epochs = 1
+    num_epochs = 10
 
     for epoch in range(1, num_epochs + 1):
         print(f'epoch: {epoch}')
