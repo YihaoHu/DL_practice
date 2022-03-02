@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import torch.nn as nn
 from torch.utils.data import Dataset, random_split, DataLoader, ConcatDataset
+from PIL import Image
 
 if __name__ == "__main__":
     #data preprocess
@@ -20,12 +21,10 @@ if __name__ == "__main__":
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]
     )
-    img_list = os.listdir('train/')
+    img_list = os.listdir('train/')[:20]
     dataset = CatsDogsDataset(img_list=img_list, transform=data_trans)
-    #train_data, val_data = random_split(dataset, [23000, 2000])
-    #dataset = ConcatDataset([train_data, val_data])
 
-    kfold = KFold(n_splits=2, shuffle=True)
+    kfold = KFold(n_splits=3, shuffle=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Resnet50(Pretrained=True).model.to(device)
@@ -84,17 +83,17 @@ if __name__ == "__main__":
             
             running_loss = 0.0
             accuracy = 0
+            with torch.no_grad():
+                for inputs, labels in dataloaders['test']:
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
 
-            for inputs, labels in dataloaders['test']:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+                    outputs = model(inputs)
+                    _, preds = torch.max(outputs, 1)
+                    loss = criterion(outputs, labels)
 
-                outputs = model(inputs)
-                _, preds = torch.max(outputs, 1)
-                loss = criterion(outputs, labels)
-
-                running_loss += loss.item() * inputs.size(0) #batch size
-                accuracy += torch.sum(preds == labels)
+                    running_loss += loss.item() * inputs.size(0) #batch size
+                    accuracy += torch.sum(preds == labels)
 
             epoch_loss = running_loss / len(test_ids)
             epoch_acc = accuracy / len(test_ids)
@@ -102,8 +101,30 @@ if __name__ == "__main__":
             print('Testing,  Loss: {:.4f} Acc: {:.4f}'.format(epoch_loss, epoch_acc))
 
     #save model 
-    torch.save(model, './model/')
+    torch.save(model, 'model.pt')
+
+    #submission output
+    test_imgs = os.listdir('test/')[:10]
+    labels = {}
+    with torch.no_grad():
+        for test_img in test_imgs:
+            img = Image.open('test/'+test_img)
+            img = data_trans(img)
+            img = img.unsqueeze(0)
+            img = img.to(device)
             
+            model.eval()
+            output = model(img)
+            pred = torch.nn.functional.softmax(output, dim=1)[:, 1].tolist()
+            labels[int(test_img.split('.')[0])] = pred[0]
+
+    res = []
+    for i in sorted(labels.keys()):
+        res.append(labels[i])
+                
+    df = {'id':sorted(labels.keys()), 'label':res}
+    df = pd.DataFrame(df)
+    df.to_csv('submit.csv', index=False)
 
 
 
