@@ -24,7 +24,7 @@ if __name__ == "__main__":
     img_list = os.listdir('train/')
     dataset = CatsDogsDataset(img_list=img_list, transform=data_trans)
 
-    kfold = KFold(n_splits=6, shuffle=True)
+    kfold = KFold(n_splits=5, shuffle=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Resnet50(Pretrained=True).model.to(device)
