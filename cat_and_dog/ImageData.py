@@ -12,7 +12,7 @@ class CatsDogsDataset(Dataset):
         image = Image.open('train/' + img_name)
         if self.transform:
             image = self.transform(image)
-        label = 1 if img_name.split('.') == 'dog' else 0
+        label = 1 if img_name.split('.')[0] == 'dog' else 0
 
         return image, label
 
